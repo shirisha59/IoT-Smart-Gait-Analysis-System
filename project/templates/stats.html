@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Statistics</title>
+</head>
+<body>
+
+<h2>System Statistics</h2>
+
+<hr>
+
+<h3>👥 Users Overview</h3>
+<p>Total Users: <b>{{ total_users }}</b></p>
+<p>Patients: <b>{{ patients }}</b></p>
+<p>Doctors: <b>{{ doctors }}</b></p>
+
+<hr>
+
+<h3>📊 Sensor Data</h3>
+<p>Total Sensor Records Stored: <b>{{ total_data }}</b></p>
+
+<hr>
+
+<h3>📋 Registered Users</h3>
+
+<table border="1" cellpadding="8">
+    <tr>
+        <th>Username</th>
+        <th>Role</th>
+    </tr>
+
+    {% for user in users %}
+    <tr>
+        <td>{{ user[0] }}</td>
+        <td>{{ user[1] }}</td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+<br>
+
+<a href="/dashboard">⬅ Back to Dashboard</a>
+
+</body>
+</html>

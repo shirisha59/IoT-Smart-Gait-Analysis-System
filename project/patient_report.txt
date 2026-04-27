@@ -1,0 +1,34 @@
+====== PARKINSON DIAGNOSTIC REPORT ======
+
+PATIENT INFORMATION
+---------------------------
+Name: Unknown
+Age: N/A
+Gender: N/A
+Height: N/A cm
+Weight: N/A kg
+
+ANALYSIS RESULT
+---------------------------
+Condition: Normal Walking
+Confidence: 43.60%
+
+GAIT PARAMETERS
+---------------------------
+Step Count: 532
+Cadence: 53.74 steps/min
+Stride Variability: 4523.75
+Range of Motion: 29367.00
+Gait Symmetry Index: 1.95% (Normal)
+Movement Stability: 20464350.15
+
+MEDICAL INTERPRETATION
+---------------------------
+Irregular gait pattern detected.
+
+RECOMMENDATION
+---------------------------
+Monitor Regularly
+
+NOTE:
+Graph visualization available in dashboard.

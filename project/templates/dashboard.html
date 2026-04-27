@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #f5f7fa;
+            padding: 30px;
+            color: #1a1a1a;
+        }
+
+        h2 { margin-bottom: 10px; }
+        h3 { margin-bottom: 10px; font-weight: 600; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .nav a {
+            margin-left: 15px;
+            text-decoration: none;
+            color: #4a6cf7;
+            font-weight: 500;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        }
+
+        .full { grid-column: span 2; }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid #dcdfe6;
+        }
+
+        input:focus {
+            border-color: #4a6cf7;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74,108,247,0.15);
+        }
+
+        button {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #4a6cf7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3b5bdb;
+        }
+
+        .btn-secondary {
+            background: #e4e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #d6dbe5;
+        }
+
+        .results p {
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        canvas { margin-top: 15px; }
+
+        .highlight {
+            font-weight: 600;
+            color: #4a6cf7;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <div>
+        <h2>Parkinson Monitoring Dashboard</h2>
+        <p>Welcome <span class="highlight">{{user}}</span></p>
+    </div>
+
+    <div class="nav">
+        <a href="/history">History</a>
+        <a href="/stats">Stats</a>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Instructions -->
+    <div class="card">
+        <h3>Instructions</h3>
+        <p>1. Connect ESP32 sensors</p>
+        <p>2. Run <b>collect_patient_data.py</b></p>
+        <p>3. Let patient walk (2–3 min)</p>
+        <p>4. Press Q to stop</p>
+        <p>5. Click Analyze Patient File</p>
+    </div>
+
+    <!-- Patient Info -->
+    <div class="card">
+        <h3>Patient Information</h3>
+
+        <input id="name" placeholder="Name">
+        <input id="age" placeholder="Age">
+        <input id="gender" placeholder="Gender">
+        <input id="height" placeholder="Height (cm)">
+        <input id="weight" placeholder="Weight (kg)">
+    </div>
+
+    <!-- Analysis -->
+    <div class="card">
+        <h3>Analyze Patient</h3>
+        <button class="btn-primary" onclick="analyzeFile()">Analyze Patient File</button>
+
+        <div class="results" style="margin-top:15px;">
+            <p id="result">Result: --</p>
+            <p id="confidence">Confidence: --</p>
+            <p id="steps">Step Count: --</p>
+            <p id="cadence">Cadence: --</p>
+            <p id="suggestion">Recommendation: --</p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <h3>Actions</h3>
+        <button class="btn-primary" onclick="downloadReport()">Download Report</button>
+        <br><br>
+        <a href="/history"><button class="btn-secondary">View History</button></a>
+    </div>
+
+    <!-- Graph -->
+    <div class="card full">
+        <h3>Walking Pattern (Left vs Right Leg)</h3>
+        <canvas id="chart" height="120"></canvas>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let chart;
+
+function downloadReport(){
+    let name = document.getElementById("name").value || "Unknown";
+    let age = document.getElementById("age").value || "N/A";
+    let gender = document.getElementById("gender").value || "N/A";
+    let height = document.getElementById("height").value || "N/A";
+    let weight = document.getElementById("weight").value || "N/A";
+
+    let url = `/download_report?name=${name}&age=${age}&gender=${gender}&height=${height}&weight=${weight}`;
+    window.location.href = url;
+}
+
+function analyzeFile(){
+    fetch("/analyze_file")
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.error){
+            alert(data.error);
+            return;
+        }
+
+        document.getElementById("result").innerText = "Result: " + data.result;
+        document.getElementById("confidence").innerText = "Confidence: " + (data.confidence * 100).toFixed(2) + "%";
+        document.getElementById("steps").innerText = "peak Count: " + data.steps;
+        document.getElementById("cadence").innerText = "Cadence: " + data.cadence.toFixed(2);
+        document.getElementById("suggestion").innerText = "Recommendation: " + data.suggestion;
+
+        loadGraph();
+    });
+}
+
+function loadGraph(){
+    fetch("/graph_data")
+    .then(res => res.json())
+    .then(data => {
+
+        if(!chart){
+            chart = new Chart(document.getElementById("chart"), {
+                type: "line",
+                data: {
+                    labels: data.Lx.map((_,i)=>i),
+                    datasets: [
+                        {
+                            label:"Left Leg",
+                            data:data.Lx,
+                            borderWidth:2,
+                            tension:0.4
+                        },
+                        {
+                            label:"Right Leg",
+                            data:data.Rx,
+                            borderWidth:2,
+                            tension:0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                font: { size: 13 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: "Time (Sensor Samples)",
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: "Acceleration (m/s²)",
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        } 
+        else {
+            chart.data.labels = data.Lx.map((_,i)=>i);
+            chart.data.datasets[0].data = data.Lx;
+            chart.data.datasets[1].data = data.Rx;
+            chart.update();
+        }
+    });
+}
+</script>
+
+</body>
+</html>
