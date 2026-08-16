@@ -11,6 +11,7 @@ app.secret_key = "secret123"
 # =========================
 # RECORDING CONTROL
 # =========================
+
 recording = False
 
 @app.route("/start")
@@ -29,42 +30,59 @@ def stop():
 # DATABASE INIT
 # =========================
 def init_db():
+
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
+    # USERS TABLE
     c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            password TEXT,
-            role TEXT
-        )
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        password TEXT,
+        role TEXT
+    )
     ''')
 
+    # SENSOR TABLE
     c.execute('''
-        CREATE TABLE IF NOT EXISTS sensor_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Lx REAL, Ly REAL, Lz REAL,
-            Rx REAL, Ry REAL, Rz REAL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
+    CREATE TABLE IF NOT EXISTS sensor_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        Lx REAL,
+        Ly REAL,
+        Lz REAL,
+        Rx REAL,
+        Ry REAL,
+        Rz REAL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
     ''')
+
+    # ANALYSIS HISTORY TABLE
     c.execute('''
-        CREATE TABLE IF NOT EXISTS analysis_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            date TEXT,
-            result TEXT,
-            confidence REAL,
-            steps INTEGER,
-            cadence REAL,
-            symmetry REAL,
-            stride_var REAL,
-            rom REAL,
-            stability REAL,
-            advice TEXT
-        )
-        ''')
+    CREATE TABLE IF NOT EXISTS analysis_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        username TEXT,
+        date TEXT,
+
+        result TEXT,
+        confidence REAL,
+
+        steps INTEGER,
+        cadence REAL,
+
+        symmetry REAL,
+        stride_var REAL,
+        rom REAL,
+        stability REAL,
+
+        advice TEXT,
+
+        performance REAL
+    )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -231,6 +249,7 @@ def download_report():
     gender = request.args.get("gender", "N/A")
     height = request.args.get("height", "N/A")
     weight = request.args.get("weight", "N/A")
+    performance = 100 - (r["confidence"] * 100)
 
     # ✔ SYMMETRY INTERPRETATION
     if r["symmetry"] < 10:
@@ -245,7 +264,7 @@ def download_report():
     with open(report_path, "w") as f:
 
         f.write("====== PARKINSON DIAGNOSTIC REPORT ======\n\n")
-
+        f.write("====== PARKINSON DIAGNOSTIC REPORT ======\n\n")
         f.write("PATIENT INFORMATION\n")
         f.write("---------------------------\n")
         f.write(f"Name: {name}\n")
@@ -258,6 +277,7 @@ def download_report():
         f.write("---------------------------\n")
         f.write(f"Condition: {r['result']}\n")
         f.write(f"Confidence: {r['confidence']*100:.2f}%\n\n")
+        f.write(f"Overall Walking Performance: {performance:.2f}%\n\n")
 
         f.write("GAIT PARAMETERS\n")
         f.write("---------------------------\n")
@@ -267,10 +287,13 @@ def download_report():
         f.write(f"Range of Motion: {r['rom']:.2f}\n")
         f.write(f"Gait Symmetry Index: {r['symmetry']:.2f}% ({sym_text})\n")
         f.write(f"Movement Stability: {r['stability']:.2f}\n\n")
-
+        f.write(f"Movement Stability Score: {r['stability']/1000000:.2f}\n\n")
         f.write("MEDICAL INTERPRETATION\n")
         f.write("---------------------------\n")
-        f.write("Irregular gait pattern detected.\n\n")
+        if r["result"] == "Parkinson Detected":
+            f.write("Irregular gait pattern detected.\n\n")
+        else:
+            f.write("Walking pattern appears normal.\n\n")
 
         f.write("RECOMMENDATION\n")
         f.write("---------------------------\n")
@@ -278,6 +301,8 @@ def download_report():
 
         f.write("NOTE:\n")
         f.write("Graph visualization available in dashboard.\n")
+        f.write("\nThis report is intended for assistive analysis only.\n")
+        f.write("Final diagnosis should be confirmed by a medical professional.\n")
 
     return send_file(report_path, as_attachment=True)
 
@@ -312,7 +337,56 @@ def stats():
                            doctors=doctors,
                            total_data=total_data,
                            users=users)
+
+def validate_sensor_placement(df):
+
+    # Mean acceleration values
+    Lx_mean = df["Lx"].mean()
+    Rx_mean = df["Rx"].mean()
+
+    Ly_mean = df["Ly"].mean()
+    Ry_mean = df["Ry"].mean()
+
+    Lz_mean = df["Lz"].mean()
+    Rz_mean = df["Rz"].mean()
+
+    # Variance
+    L_var = df["Lx"].var()
+    R_var = df["Rx"].var()
+
+    # -----------------------------
+    # 1. SENSOR ACTIVE CHECK
+    # -----------------------------
+    if L_var < 100 or R_var < 100:
+        return False, "One sensor may be inactive or loose."
+
+    # -----------------------------
+    # 2. UPSIDE DOWN DETECTION
+    # -----------------------------
+    # If one leg axis is opposite direction
+    # compared to expected orientation
+
+    if (Lz_mean > 0 and Rz_mean < 0) or \
+       (Lz_mean < 0 and Rz_mean > 0):
+
+        return False, "Sensors appear upside down. Please reposition correctly."
+
+    # -----------------------------
+    # 3. EXTREME ORIENTATION CHECK
+    # -----------------------------
+    if abs(Lx_mean - Rx_mean) > 12000:
+        return False, "Sensors are not aligned properly on both legs."
+
+    # -----------------------------
+    # 4. EXCESSIVE NOISE
+    # -----------------------------
+    if L_var > 1e9 or R_var > 1e9:
+        return False, "Abnormal movement detected. Reattach sensors."
+
+    return True, "Correct placement"
+
 import os
+
 @app.route("/analyze_file")
 def analyze_file():
 
@@ -322,48 +396,121 @@ def analyze_file():
     if not os.path.exists(file_path):
         return {"error": "No data file found"}
 
+    # READ DATA
     df = pd.read_csv(file_path)
     df = df[["Lx","Ly","Lz","Rx","Ry","Rz"]]
+    # SENSOR POSITION VALIDATION
+    valid, sensor_msg = validate_sensor_placement(df)
 
+    if not valid:
+        return {
+            "error": sensor_msg
+        }
+    
+    # ---------------------------------
+    # WALKING DETECTION CHECK
+    # ---------------------------------
+
+    movement = (
+        df["Lx"].std() +
+        df["Ly"].std() +
+        df["Lz"].std() +
+        df["Rx"].std() +
+        df["Ry"].std() +
+        df["Rz"].std()
+    )
+
+    # Step estimation
+    lx = df["Lx"].values
+
+    steps = int(sum(
+        abs(lx[i] - lx[i-1]) > 2500
+        for i in range(1, len(lx))
+    ))
+
+    # If no real walking
+    if movement < 15000 or steps < 8:
+
+        return {
+            "error": "No proper walking detected. Please walk correctly and try again."
+        }
+
+    # ML PREDICTION
     X_scaled = scaler.transform(df)
+
     probs = model.predict_proba(X_scaled)[:,1]
+
     confidence = float(probs.mean())
 
     result = "Parkinson Detected" if confidence > 0.5 else "Normal Walking"
 
+    # PARAMETERS
     lx = df["Lx"].values
-    steps = int(sum(abs(lx[i] - lx[i-1]) > 100 for i in range(1,len(lx))))
+
+    steps = int(sum(abs(lx[i] - lx[i-1]) > 2500
+                    for i in range(1,len(lx))))
+
     cadence = float((steps / len(df)) * 60)
 
     stride_var = float(df["Lx"].std())
+
     rom = float(df["Lx"].max() - df["Lx"].min())
 
+    # SYMMETRY
     L_mean = abs(df["Lx"].mean())
     R_mean = abs(df["Rx"].mean())
 
     if (L_mean + R_mean) == 0:
         symmetry_percent = 0
     else:
-        symmetry_percent = abs(L_mean - R_mean) / (L_mean + R_mean) * 100
+        symmetry_percent = abs(L_mean - R_mean) / (
+            L_mean + R_mean
+        ) * 100
 
+    # STABILITY
     stability = float(df["Lx"].var())
 
+    # PERFORMANCE SCORE
+    performance = (
+    0.4 * (100 - confidence * 100)
+    + 0.2 * min(cadence, 100)
+    + 0.2 * (100 - min(symmetry_percent, 100))
+    + 0.2 * (100 - min(stride_var / 100, 100))
+)
+
+    # RECOMMENDATION
     if confidence > 0.7:
         suggestion = "Consult Doctor Immediately"
+
     elif confidence > 0.4:
         suggestion = "Monitor Regularly"
+
     else:
         suggestion = "No Immediate Concern"
 
-    # 🔹 STORE HISTORY
+    # DATABASE STORAGE
     import datetime
+
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
     c.execute('''
     INSERT INTO analysis_history
-    (username, date, result, confidence, steps, cadence, symmetry, stride_var, rom, stability, advice)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    (
+        username,
+        date,
+        result,
+        confidence,
+        steps,
+        cadence,
+        symmetry,
+        stride_var,
+        rom,
+        stability,
+        advice,
+        performance
+    )
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
     ''', (
         session["user"],
         str(datetime.datetime.now()),
@@ -375,13 +522,14 @@ def analyze_file():
         stride_var,
         rom,
         stability,
-        suggestion
+        suggestion,
+        performance
     ))
 
     conn.commit()
     conn.close()
 
-    # 🔹 SAVE FOR REPORT
+    # REPORT STORAGE
     session["report"] = {
         "result": result,
         "confidence": confidence,
@@ -391,42 +539,62 @@ def analyze_file():
         "rom": rom,
         "symmetry": symmetry_percent,
         "stability": stability,
+        "performance": performance,
         "advice": suggestion
     }
 
     return {
-        "result": result,
-        "confidence": confidence,
-        "steps": steps,
-        "cadence": cadence,
-        "suggestion": suggestion
-    }
+    "result": result,
+    "confidence": confidence,
+    "steps": steps,
+    "cadence": cadence,
+    "performance": performance,
+    "suggestion": suggestion
+}
 
 @app.route("/graph_data")
 def graph_data():
-    import os
-    import pandas as pd
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(BASE_DIR, "patient_data.csv")
 
     if not os.path.exists(file_path):
-        return {"error": "File not found"}
+        return {"error": "No patient data file"}
 
-    try:
-        df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path)
 
-        # Make sure columns exist
-        if "Lx" not in df.columns or "Rx" not in df.columns:
-            return {"error": "Invalid CSV format"}
+    return {
+        "Lx": df["Lx"].tolist(),
+        "Rx": df["Rx"].tolist()
+    }
+    
+@app.route("/trend_graph")
+def trend_graph():
 
-        return {
-            "Lx": df["Lx"].tolist(),
-            "Rx": df["Rx"].tolist()
-        }
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
 
-    except Exception as e:
-        return {"error": str(e)}
+    c.execute("""
+    SELECT date, performance
+    FROM analysis_history
+    WHERE username=?
+    ORDER BY id ASC
+    """, (session["user"],))
+
+    rows = c.fetchall()
+
+    conn.close()
+
+    # FULL DATE + TIME
+    dates = [r[0][:19] for r in rows]
+
+    performance = [round(r[1],2) for r in rows]
+
+    return {
+        "dates": dates,
+        "performance": performance,
+        "normal": [90] * len(performance)
+    }
 
 @app.route("/history")
 def history():

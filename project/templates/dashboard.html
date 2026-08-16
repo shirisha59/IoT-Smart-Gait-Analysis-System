@@ -1,183 +1,805 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare AI Dashboard</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:'Inter',sans-serif;
         }
 
-        body {
-            background: #f5f7fa;
-            padding: 30px;
-            color: #1a1a1a;
+        :root{
+            --primary:#0f766e;
+            --secondary:#14b8a6;
+            --dark:#0f172a;
+            --muted:#64748b;
+            --light:#f4f8fb;
+            --white:#ffffff;
+            --border:#dbe4ee;
+
+            --success:#16a34a;
+            --danger:#dc2626;
+            --warning:#f59e0b;
+
+            --shadow:0 20px 45px rgba(15,118,110,0.08);
         }
 
-        h2 { margin-bottom: 10px; }
-        h3 { margin-bottom: 10px; font-weight: 600; }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
+        body{
+            background:var(--light);
+            color:var(--dark);
+            display:flex;
+            min-height:100vh;
+            overflow-x:hidden;
         }
 
-        .nav a {
-            margin-left: 15px;
-            text-decoration: none;
-            color: #4a6cf7;
-            font-weight: 500;
+        /* ---------------- SIDEBAR ---------------- */
+
+        .sidebar{
+            width:280px;
+            background:linear-gradient(180deg,#0f172a,#111827);
+            color:white;
+            padding:30px 24px;
+            position:fixed;
+            height:100vh;
+            overflow-y:auto;
         }
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .logo{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            margin-bottom:45px;
         }
 
-        .card {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        .logo-box{
+            width:52px;
+            height:52px;
+            border-radius:18px;
+            background:linear-gradient(135deg,var(--primary),var(--secondary));
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:26px;
+            font-weight:800;
         }
 
-        .full { grid-column: span 2; }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 12px;
-            border-radius: 8px;
-            border: 1px solid #dcdfe6;
+        .logo h2{
+            font-size:24px;
+            font-weight:800;
         }
 
-        input:focus {
-            border-color: #4a6cf7;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(74,108,247,0.15);
+        .logo span{
+            color:#5eead4;
         }
 
-        button {
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
+        .sidebar-title{
+            font-size:12px;
+            letter-spacing:1px;
+            text-transform:uppercase;
+            color:#94a3b8;
+            margin-bottom:18px;
         }
 
-        .btn-primary {
-            background: #4a6cf7;
-            color: white;
+        .menu{
+            display:flex;
+            flex-direction:column;
+            gap:12px;
+            margin-bottom:35px;
         }
 
-        .btn-primary:hover {
-            background: #3b5bdb;
+        .menu a{
+            text-decoration:none;
+            color:#e2e8f0;
+            padding:14px 18px;
+            border-radius:16px;
+            transition:0.3s ease;
+            font-size:15px;
+            font-weight:600;
         }
 
-        .btn-secondary {
-            background: #e4e8f0;
+        .menu a:hover,
+        .menu a.active{
+            background:rgba(20,184,166,0.15);
+            color:white;
         }
 
-        .btn-secondary:hover {
-            background: #d6dbe5;
+        .sidebar-card{
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:24px;
+            padding:22px;
+            margin-top:20px;
         }
 
-        .results p {
-            margin-bottom: 6px;
-            font-size: 14px;
+        .sidebar-card h3{
+            font-size:18px;
+            margin-bottom:10px;
         }
 
-        canvas { margin-top: 15px; }
-
-        .highlight {
-            font-weight: 600;
-            color: #4a6cf7;
+        .sidebar-card p{
+            color:#cbd5e1;
+            font-size:14px;
+            line-height:1.7;
         }
+
+        /* ---------------- MAIN ---------------- */
+
+        .main{
+            margin-left:280px;
+            width:calc(100% - 280px);
+            padding:35px;
+        }
+
+        /* ---------------- TOP BAR ---------------- */
+
+        .topbar{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:32px;
+        }
+
+        .welcome h1{
+            font-size:36px;
+            font-weight:800;
+            margin-bottom:10px;
+        }
+
+        .welcome p{
+            color:var(--muted);
+            font-size:16px;
+            line-height:1.7;
+        }
+
+        .user-profile{
+            background:white;
+            border-radius:20px;
+            padding:14px 22px;
+            box-shadow:var(--shadow);
+            border:1px solid rgba(219,228,238,0.7);
+            font-weight:600;
+            color:var(--primary);
+        }
+
+        /* ---------------- STATS ---------------- */
+
+        .stats-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+            gap:24px;
+            margin-bottom:30px;
+        }
+
+        .stat-card{
+            background:white;
+            border-radius:28px;
+            padding:28px;
+            box-shadow:var(--shadow);
+            border:1px solid rgba(219,228,238,0.8);
+            transition:0.3s ease;
+        }
+
+        .stat-card:hover{
+            transform:translateY(-4px);
+        }
+
+        .stat-label{
+            color:var(--muted);
+            font-size:14px;
+            margin-bottom:18px;
+        }
+
+        .stat-value{
+            font-size:42px;
+            font-weight:800;
+            margin-bottom:12px;
+            color:var(--primary);
+        }
+
+        .stat-info{
+            font-size:14px;
+            line-height:1.7;
+            color:var(--muted);
+        }
+
+        /* ---------------- GRID ---------------- */
+
+        .dashboard-grid{
+            display:grid;
+            grid-template-columns:1.2fr 0.8fr;
+            gap:28px;
+            margin-bottom:28px;
+        }
+
+        .card{
+            background:white;
+            border-radius:30px;
+            padding:30px;
+            box-shadow:var(--shadow);
+            border:1px solid rgba(219,228,238,0.8);
+        }
+
+        .card-title{
+            font-size:22px;
+            font-weight:700;
+            margin-bottom:24px;
+        }
+
+        /* ---------------- PATIENT FORM ---------------- */
+
+        .form-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:16px;
+        }
+
+        .input-group{
+            margin-bottom:16px;
+        }
+
+        .input-group label{
+            display:block;
+            margin-bottom:8px;
+            font-size:14px;
+            font-weight:600;
+            color:#334155;
+        }
+
+        .input-group input{
+            width:100%;
+            padding:15px 16px;
+            border-radius:16px;
+            border:1px solid var(--border);
+            background:#fbfdff;
+            transition:0.25s ease;
+            font-size:15px;
+        }
+
+        .input-group input:focus{
+            outline:none;
+            border-color:var(--secondary);
+            box-shadow:0 0 0 4px rgba(20,184,166,0.12);
+            background:white;
+        }
+
+        /* ---------------- BUTTONS ---------------- */
+
+        .button-group{
+            display:flex;
+            flex-wrap:wrap;
+            gap:14px;
+            margin-top:10px;
+        }
+
+        .btn{
+            border:none;
+            padding:15px 22px;
+            border-radius:18px;
+            cursor:pointer;
+            font-size:14px;
+            font-weight:700;
+            transition:0.3s ease;
+        }
+
+        .btn:hover{
+            transform:translateY(-3px);
+        }
+
+        .btn-primary{
+            background:linear-gradient(135deg,var(--primary),var(--secondary));
+            color:white;
+            box-shadow:0 10px 24px rgba(15,118,110,0.18);
+        }
+
+        .btn-success{
+            background:linear-gradient(135deg,#16a34a,#22c55e);
+            color:white;
+        }
+
+        .btn-danger{
+            background:linear-gradient(135deg,#dc2626,#ef4444);
+            color:white;
+        }
+
+        .btn-secondary{
+            background:#eff6ff;
+            color:#2563eb;
+        }
+
+        /* ---------------- RESULT BOX ---------------- */
+
+        .result-box{
+            background:#f8fafc;
+            border:1px solid var(--border);
+            border-radius:24px;
+            padding:24px;
+        }
+
+        .result-item{
+            margin-bottom:14px;
+            font-size:15px;
+            line-height:1.6;
+        }
+
+        .result-item strong{
+            color:var(--primary);
+        }
+
+        /* ---------------- CHARTS ---------------- */
+
+        .chart-card{
+            background:white;
+            border-radius:30px;
+            padding:30px;
+            box-shadow:var(--shadow);
+            border:1px solid rgba(219,228,238,0.8);
+            margin-bottom:28px;
+        }
+
+        .chart-card canvas{
+            margin-top:18px;
+        }
+
+        /* ---------------- INSTRUCTIONS ---------------- */
+
+        .instruction-list{
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+
+        .instruction{
+            display:flex;
+            align-items:flex-start;
+            gap:14px;
+        }
+
+        .instruction-number{
+            min-width:34px;
+            height:34px;
+            border-radius:12px;
+            background:rgba(20,184,166,0.12);
+            color:var(--primary);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:700;
+        }
+
+        .instruction p{
+            color:var(--muted);
+            line-height:1.7;
+            font-size:14px;
+        }
+
+        /* ---------------- RESPONSIVE ---------------- */
+
+        @media(max-width:1100px){
+
+            .dashboard-grid{
+                grid-template-columns:1fr;
+            }
+
+            .form-grid{
+                grid-template-columns:1fr;
+            }
+        }
+
+        @media(max-width:900px){
+
+            .sidebar{
+                display:none;
+            }
+
+            .main{
+                margin-left:0;
+                width:100%;
+                padding:20px;
+            }
+
+            .topbar{
+                flex-direction:column;
+                align-items:flex-start;
+                gap:20px;
+            }
+
+            .welcome h1{
+                font-size:30px;
+            }
+        }
+
+        @media(max-width:600px){
+
+            .stats-grid{
+                grid-template-columns:1fr;
+            }
+
+            .button-group{
+                flex-direction:column;
+            }
+
+            .btn{
+                width:100%;
+            }
+        }
+
     </style>
 </head>
 
 <body>
 
-<div class="header">
-    <div>
-        <h2>Parkinson Monitoring Dashboard</h2>
-        <p>Welcome <span class="highlight">{{user}}</span></p>
-    </div>
+    <!-- SIDEBAR -->
 
-    <div class="nav">
-        <a href="/history">History</a>
-        <a href="/stats">Stats</a>
-        <a href="/logout">Logout</a>
-    </div>
-</div>
+    <aside class="sidebar">
 
-<div class="container">
+        <div class="logo">
 
-    <!-- Instructions -->
-    <div class="card">
-        <h3>Instructions</h3>
-        <p>1. Connect ESP32 sensors</p>
-        <p>2. Run <b>collect_patient_data.py</b></p>
-        <p>3. Let patient walk (2–3 min)</p>
-        <p>4. Press Q to stop</p>
-        <p>5. Click Analyze Patient File</p>
-    </div>
+            <div class="logo-box">
+                +
+            </div>
 
-    <!-- Patient Info -->
-    <div class="card">
-        <h3>Patient Information</h3>
+            <h2>
+                Health<span>Care+</span>
+            </h2>
 
-        <input id="name" placeholder="Name">
-        <input id="age" placeholder="Age">
-        <input id="gender" placeholder="Gender">
-        <input id="height" placeholder="Height (cm)">
-        <input id="weight" placeholder="Weight (kg)">
-    </div>
-
-    <!-- Analysis -->
-    <div class="card">
-        <h3>Analyze Patient</h3>
-        <button class="btn-primary" onclick="analyzeFile()">Analyze Patient File</button>
-
-        <div class="results" style="margin-top:15px;">
-            <p id="result">Result: --</p>
-            <p id="confidence">Confidence: --</p>
-            <p id="steps">Step Count: --</p>
-            <p id="cadence">Cadence: --</p>
-            <p id="suggestion">Recommendation: --</p>
         </div>
-    </div>
 
-    <!-- Actions -->
-    <div class="card">
-        <h3>Actions</h3>
-        <button class="btn-primary" onclick="downloadReport()">Download Report</button>
-        <br><br>
-        <a href="/history"><button class="btn-secondary">View History</button></a>
-    </div>
+        <div class="sidebar-title">
+            Main Menu
+        </div>
 
-    <!-- Graph -->
-    <div class="card full">
-        <h3>Walking Pattern (Left vs Right Leg)</h3>
-        <canvas id="chart" height="120"></canvas>
-    </div>
+        <div class="menu">
 
-</div>
+            <a href="#" class="active">
+                Dashboard
+            </a>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <a href="/history">
+                Patient History
+            </a>
+
+            <a href="/stats">
+                Statistics
+            </a>
+
+            <a href="/download_report">
+                Reports
+            </a>
+
+            <a href="/logout">
+                Logout
+            </a>
+
+        </div>
+
+        <div class="sidebar-card">
+
+            <h3>
+                AI Monitoring
+            </h3>
+
+            <p>
+                Real-time Parkinson gait analysis system for hospitals,
+                doctors, patients, and healthcare research applications.
+            </p>
+
+        </div>
+
+    </aside>
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+        <!-- TOPBAR -->
+
+        <div class="topbar">
+
+            <div class="welcome">
+
+                <h1>
+                    Parkinson Monitoring Dashboard
+                </h1>
+
+                <p>
+                    Analyze walking patterns, monitor gait recovery,
+                    and generate AI-powered healthcare reports.
+                </p>
+
+            </div>
+
+            <div class="user-profile">
+                {{ user }}
+            </div>
+
+        </div>
+
+        <!-- STATS -->
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    AI Detection Status
+                </div>
+
+                <div class="stat-value" id="resultMetric">
+                    Ready
+                </div>
+
+                <div class="stat-info">
+                    System ready for Parkinson gait analysis.
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    Performance Score
+                </div>
+
+                <div class="stat-value" id="performanceMetric">
+                    --%
+                </div>
+
+                <div class="stat-info">
+                    Overall patient walking performance.
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <div class="stat-label">
+                    Walking Steps
+                </div>
+
+                <div class="stat-value" id="stepsMetric">
+                    0
+                </div>
+
+                <div class="stat-info">
+                    Estimated steps from gait analysis.
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- MAIN GRID -->
+
+        <div class="dashboard-grid">
+
+            <!-- PATIENT INFO -->
+
+            <div class="card">
+
+                <div class="card-title">
+                    Patient Information
+                </div>
+
+                <div class="form-grid">
+
+                    <div class="input-group">
+                        <label>Patient Name</label>
+                        <input id="name" placeholder="Enter patient name">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Age</label>
+                        <input id="age" placeholder="Enter age">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Gender</label>
+                        <input id="gender" placeholder="Enter gender">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Height (cm)</label>
+                        <input id="height" placeholder="Enter height">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Weight (kg)</label>
+                        <input id="weight" placeholder="Enter weight">
+                    </div>
+
+                </div>
+
+                <div class="button-group">
+
+                    <button class="btn btn-success" onclick="startRecording()">
+                        Start Recording
+                    </button>
+
+                    <button class="btn btn-danger" onclick="stopRecording()">
+                        Stop Recording
+                    </button>
+
+                    <button class="btn btn-primary" onclick="analyzeFile()">
+                        Analyze Patient
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="downloadReport()">
+                        Download Report
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- INSTRUCTIONS -->
+
+            <div class="card">
+
+                <div class="card-title">
+                    Instructions
+                </div>
+
+                <div class="instruction-list">
+
+                    <div class="instruction">
+
+                        <div class="instruction-number">
+                            1
+                        </div>
+
+                        <p>
+                            Connect ESP32 sensors properly before data collection.
+                        </p>
+
+                    </div>
+
+                    <div class="instruction">
+
+                        <div class="instruction-number">
+                            2
+                        </div>
+
+                        <p>
+                            Run <strong>collect_patient_data.py</strong> on the system.
+                        </p>
+
+                    </div>
+
+                    <div class="instruction">
+
+                        <div class="instruction-number">
+                            3
+                        </div>
+
+                        <p>
+                            Let the patient walk naturally for 2–3 minutes.
+                        </p>
+
+                    </div>
+
+                    <div class="instruction">
+
+                        <div class="instruction-number">
+                            4
+                        </div>
+
+                        <p>
+                            Stop recording and begin AI gait analysis.
+                        </p>
+
+                    </div>
+
+                    <div class="instruction">
+
+                        <div class="instruction-number">
+                            5
+                        </div>
+
+                        <p>
+                            Download and review the medical diagnostic report.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- RESULTS -->
+
+        <div class="chart-card">
+
+            <div class="card-title">
+                AI Analysis Results
+            </div>
+
+            <div class="result-box">
+
+                <div class="result-item" id="result">
+                    <strong>Result:</strong> --
+                </div>
+
+                <div class="result-item" id="confidence">
+                    <strong>Confidence:</strong> --
+                </div>
+
+                <div class="result-item" id="steps">
+                    <strong>Step Count:</strong> --
+                </div>
+
+                <div class="result-item" id="cadence">
+                    <strong>Cadence:</strong> --
+                </div>
+
+                <div class="result-item" id="suggestion">
+                    <strong>Recommendation:</strong> --
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- WALKING GRAPH -->
+
+        <div class="chart-card">
+
+            <div class="card-title">
+                Walking Pattern Analysis
+            </div>
+
+            <canvas id="chart" height="120"></canvas>
+
+        </div>
+
+        <!-- TREND GRAPH -->
+
+        <div class="chart-card">
+
+            <div class="card-title">
+                Recovery Performance Trend
+            </div>
+
+            <canvas id="trendChart" height="120"></canvas>
+
+        </div>
+
+    </main>
 
 <script>
+
 let chart;
+let trendChart;
+
+async function startRecording(){
+
+    await fetch("/start");
+
+    alert("Recording Started");
+
+}
+
+async function stopRecording(){
+
+    await fetch("/stop");
+
+    alert("Recording Stopped");
+
+}
 
 function downloadReport(){
+
     let name = document.getElementById("name").value || "Unknown";
     let age = document.getElementById("age").value || "N/A";
     let gender = document.getElementById("gender").value || "N/A";
@@ -185,103 +807,191 @@ function downloadReport(){
     let weight = document.getElementById("weight").value || "N/A";
 
     let url = `/download_report?name=${name}&age=${age}&gender=${gender}&height=${height}&weight=${weight}`;
+
     window.location.href = url;
 }
 
 function analyzeFile(){
+
     fetch("/analyze_file")
+
     .then(res => res.json())
+
     .then(data => {
 
         if(data.error){
+
             alert(data.error);
+
             return;
         }
 
-        document.getElementById("result").innerText = "Result: " + data.result;
-        document.getElementById("confidence").innerText = "Confidence: " + (data.confidence * 100).toFixed(2) + "%";
-        document.getElementById("steps").innerText = "peak Count: " + data.steps;
-        document.getElementById("cadence").innerText = "Cadence: " + data.cadence.toFixed(2);
-        document.getElementById("suggestion").innerText = "Recommendation: " + data.suggestion;
+        document.getElementById("result").innerHTML =
+            `<strong>Result:</strong> ${data.result}`;
+
+        document.getElementById("confidence").innerHTML =
+            `<strong>Confidence:</strong> ${(data.confidence * 100).toFixed(2)}%`;
+
+        document.getElementById("steps").innerHTML =
+            `<strong>Step Count:</strong> ${data.steps}`;
+
+        document.getElementById("cadence").innerHTML =
+            `<strong>Cadence:</strong> ${data.cadence.toFixed(2)}`;
+
+        document.getElementById("suggestion").innerHTML =
+            `<strong>Recommendation:</strong> ${data.suggestion}`;
+
+        document.getElementById("resultMetric").innerText =
+            data.result;
+
+        document.getElementById("performanceMetric").innerText =
+            data.performance.toFixed(1) + "%";
+
+        document.getElementById("stepsMetric").innerText =
+            data.steps;
 
         loadGraph();
     });
 }
 
 function loadGraph(){
+
     fetch("/graph_data")
+
     .then(res => res.json())
+
     .then(data => {
 
         if(!chart){
+
             chart = new Chart(document.getElementById("chart"), {
-                type: "line",
-                data: {
-                    labels: data.Lx.map((_,i)=>i),
-                    datasets: [
+
+                type:"line",
+
+                data:{
+                    labels:data.Lx.map((_,i)=>i),
+
+                    datasets:[
+
                         {
                             label:"Left Leg",
                             data:data.Lx,
-                            borderWidth:2,
-                            tension:0.4
+                            borderColor:"#0f766e",
+                            backgroundColor:"rgba(15,118,110,0.08)",
+                            borderWidth:3,
+                            tension:0.4,
+                            fill:true
                         },
+
                         {
                             label:"Right Leg",
                             data:data.Rx,
-                            borderWidth:2,
-                            tension:0.4
+                            borderColor:"#14b8a6",
+                            backgroundColor:"rgba(20,184,166,0.08)",
+                            borderWidth:3,
+                            tension:0.4,
+                            fill:true
                         }
+
                     ]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                font: { size: 13 }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: "Time (Sensor Samples)",
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                }
-                            },
-                            ticks: {
-                                font: { size: 12 }
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: "Acceleration (m/s²)",
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                }
-                            },
-                            ticks: {
-                                font: { size: 12 }
+
+                options:{
+                    responsive:true,
+
+                    plugins:{
+                        legend:{
+                            labels:{
+                                usePointStyle:true
                             }
                         }
                     }
                 }
             });
-        } 
-        else {
+
+        }else{
+
             chart.data.labels = data.Lx.map((_,i)=>i);
+
             chart.data.datasets[0].data = data.Lx;
             chart.data.datasets[1].data = data.Rx;
+
             chart.update();
         }
+
     });
 }
+
+function loadTrendGraph(){
+
+    fetch("/trend_graph")
+
+    .then(res => res.json())
+
+    .then(data => {
+
+        if(!trendChart){
+
+            trendChart = new Chart(
+                document.getElementById("trendChart"),
+                {
+                    type:"line",
+
+                    data:{
+                        labels:data.dates,
+
+                        datasets:[
+
+                            {
+                                label:"Performance",
+                                data:data.performance,
+                                borderColor:"#0f766e",
+                                backgroundColor:"rgba(15,118,110,0.08)",
+                                borderWidth:3,
+                                tension:0.4,
+                                fill:true
+                            },
+
+                            {
+                                label:"Normal Range",
+                                data:data.normal,
+                                borderColor:"#f59e0b",
+                                borderDash:[6,6],
+                                borderWidth:2,
+                                tension:0.4
+                            }
+
+                        ]
+                    },
+
+                    options:{
+                        responsive:true,
+
+                        scales:{
+                            y:{
+                                min:0,
+                                max:100
+                            }
+                        }
+                    }
+                }
+            );
+
+        }else{
+
+            trendChart.data.labels = data.dates;
+
+            trendChart.data.datasets[0].data = data.performance;
+            trendChart.data.datasets[1].data = data.normal;
+
+            trendChart.update();
+        }
+
+    });
+}
+
+loadTrendGraph();
+
 </script>
 
 </body>
